@@ -21,10 +21,6 @@ jobs:
             extension: '.exe'
           - os: macos-latest
             goos: darwin
-            goarch: amd64
-            extension: '-darwin-amd64'
-          - os: macos-latest
-            goos: darwin
             goarch: arm64
             extension: '-darwin-arm64'
           - os: ubuntu-latest
