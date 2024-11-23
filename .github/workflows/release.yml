@@ -42,8 +42,14 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-libwebp
       - if: runner.os == 'Windows'
-        run: echo "PKG_CONFIG_PATH=C:/msys64/mingw64/lib/pkgconfig" >> $GITHUB_ENV
-      
+        run: |
+          echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
+          echo "C:\msys64\usr\bin" >> $GITHUB_PATH
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+          echo "CGO_CFLAGS=-IC:/msys64/mingw64/include" >> $GITHUB_ENV
+          echo "CGO_LDFLAGS=-LC:/msys64/mingw64/lib -lwebp" >> $GITHUB_ENV
+
       - if: runner.os == 'macOS'
         run: brew install webp
       
