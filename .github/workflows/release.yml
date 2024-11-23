@@ -18,19 +18,15 @@ jobs:
           - os: windows-latest
             goos: windows
             goarch: amd64
-            extension: '.exe'
+            suffix: '.exe'
           - os: macos-latest
             goos: darwin
             goarch: arm64
-            extension: '-darwin-arm64'
+            suffix: '-darwin-arm64'
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
-            extension: '-linux-amd64'
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-            extension: '-linux-arm64'
+            suffix: '-linux-amd64'
 
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +58,8 @@ jobs:
           CGO_ENABLED: 1
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: go build -o ccfolia-room-minifier${{ matrix.extension }} ccfolia-room-minifier.go
+        run: go build -o ccfolia-room-minifier${{ matrix.suffix }} ccfolia-room-minifier.go
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: ccfolia-room-minifier${{ matrix.extension }}
+          files: ccfolia-room-minifier${{ matrix.suffix }}
