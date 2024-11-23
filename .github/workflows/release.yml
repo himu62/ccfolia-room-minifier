@@ -10,8 +10,6 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         include:
@@ -27,6 +25,8 @@ jobs:
             goos: linux
             goarch: amd64
             suffix: '-linux-amd64'
+    
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +50,10 @@ jobs:
           echo "CXX=g++.exe" >> $GITHUB_ENV
           echo 'CGO_CFLAGS=-IC:/msys64/mingw64/include' >> $GITHUB_ENV
           echo 'CGO_LDFLAGS=-LC:/msys64/mingw64/lib -lwebp' >> $GITHUB_ENV
+      - if: runner.os == 'Windows'
+        run: |
+          go env
+          ls -l /c/msys64/mingw64/include/webp/encode.h
 
       - if: runner.os == 'macOS'
         run: brew install webp
