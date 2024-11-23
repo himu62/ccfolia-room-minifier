@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.21'
       
       - if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
@@ -64,9 +64,10 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_LDFLAGS: '-static'
         run: |
           export PATH="$GOROOT_MSYS/bin:$PATH"
-          go build -ldflags="-s -w" -o ccfolia-room-minifier${{ matrix.suffix }} ccfolia-room-minifier.go
+          go build -ldflags='-s -w -extldflags "-static"' -o ccfolia-room-minifier${{ matrix.suffix }} ccfolia-room-minifier.go
 
       - if: runner.os != 'Windows'
         env:
