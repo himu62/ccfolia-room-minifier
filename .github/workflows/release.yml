@@ -49,7 +49,8 @@ jobs:
           echo 'CGO_CFLAGS=-IC:\msys64\mingw64\include' >> $GITHUB_ENV
           echo 'CGO_LDFLAGS=-LC:\msys64\mingw64\lib -lwebp' >> $GITHUB_ENV
       - if: runner.os == 'Windows'
-        run: ls C:\msys64\mingw64\include\webp\encode.h
+        shell: bash
+        run: ls /c/msys64/mingw64/include/webp
 
       - if: runner.os == 'macOS'
         run: brew install webp
