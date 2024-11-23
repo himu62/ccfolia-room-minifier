@@ -41,6 +41,8 @@ jobs:
           install: |
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-libwebp
+            mingw-w64-x86_64-libsharpyuv
+
       - if: runner.os == 'Windows'
         shell: bash
         run: |
@@ -64,7 +66,8 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_LDFLAGS: '-static'
+          CGO_CFLAGS: '-I/mingw64/include'
+          CGO_LDFLAGS: '-L/mingw64/lib -lwebp -lsharpyuv -static'
         run: |
           export PATH="$GOROOT_MSYS/bin:$PATH"
           go build -ldflags='-s -w -extldflags "-static"' -o ccfolia-room-minifier${{ matrix.suffix }} ccfolia-room-minifier.go
