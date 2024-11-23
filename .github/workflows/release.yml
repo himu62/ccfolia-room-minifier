@@ -41,6 +41,11 @@ jobs:
           install: |
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-libwebp
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          GOROOT_MSYS=$(cygpath -u "$(go env GOROOT)")
+          echo "GOROOT_MSYS=$GOROOT_MSYS" >> $GITHUB_ENV
 
       - if: runner.os == 'macOS'
         run: brew install webp
@@ -59,7 +64,9 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: go build -o ccfolia-room-minifier${{ matrix.suffix }} ccfolia-room-minifier.go
+        run: |
+          export PATH="$GOROOT_MSYS/bin:$PATH"
+          go build -o ccfolia-room-minifier${{ matrix.suffix }} ccfolia-room-minifier.go
 
       - if: runner.os != 'Windows'
         env:
