@@ -30,7 +30,7 @@ jobs:
             extension: '-linux'
 
     steps:
-      - uses: actions/checkout@4
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
