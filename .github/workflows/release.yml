@@ -50,10 +50,10 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-libwebp
       
-      - if: runner.os == 'macos'
+      - if: runner.os == 'macOS'
         run: brew install webp
       
-      - if: runner.os == 'ubuntu'
+      - if: runner.os == 'Linux'
         run: |
           wget https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz
           tar xvf libwebp-1.4.0.tar.gz
