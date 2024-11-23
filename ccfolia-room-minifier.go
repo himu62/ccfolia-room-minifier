@@ -138,9 +138,6 @@ func isImageFile(filename string) bool {
 
 func isAnimatedImage(data []byte, filename string) (bool, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
-	if ext == ".gif" {
-		return true, nil
-	}
 	if ext == ".png" {
 		return isAnimatedPNG(data)
 	}
@@ -249,7 +246,7 @@ func processDataJSON(data []byte, filenameMap map[string]string) ([]byte, error)
 	if resources, exists := newJSON["resources"].(map[string]interface{}); exists {
 		newResources := make(map[string]interface{})
 		for filename, resource := range resources {
-			if checkFileProcecced(filename, filenameMap) {
+			if checkFileProcessed(filename, filenameMap) {
 				newResources[filename] = map[string]interface{}{
 					"type": "image/webp",
 				}
@@ -267,7 +264,7 @@ func processDataJSON(data []byte, filenameMap map[string]string) ([]byte, error)
 	return newData, nil
 }
 
-func checkFileProcecced(newFilename string, filenameMap map[string]string) bool {
+func checkFileProcessed(newFilename string, filenameMap map[string]string) bool {
 	for _, name := range filenameMap {
 		if newFilename == name {
 			return true
