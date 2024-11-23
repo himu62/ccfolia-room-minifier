@@ -1,0 +1,46 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        goos: [windows, darwin, linux]
+        goarch: [amd64]
+        extension: ['.exe', '-darwin', '-linux']
+        include:
+          - os: windows-latest
+            goos: windows
+            extension: '.exe'
+          - os: macos-latest
+            goos: darwin
+            extension: '-darwin'
+          - os: ubuntu-latest
+            goos: linux
+            extension: '-linux'
+
+    steps:
+      - uses: actions/checkout@4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      
+      - env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -o ccfolia-room-minifier${{ matrix.extension }} ccfolia-room-minifier.go
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ccfolia-room-minifier${{ matrix.extension }}
