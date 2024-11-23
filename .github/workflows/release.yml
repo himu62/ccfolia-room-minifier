@@ -27,9 +27,6 @@ jobs:
             suffix: '-linux-amd64'
 
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v4
@@ -38,10 +35,19 @@ jobs:
         with:
           go-version: '1.23'
 
+      - if: runner.os == 'Windows'
+        run: |
+          curl -O https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz
+          tar xvf libwebp-1.4.0.tar.gz
+          cd libwebp-1.4.0
+          ./configure
+          make
+          sudo make install
+
       - if: runner.os == 'macOS'
         run: brew install webp
 
-      - if: runner.os == 'Windows' || runner.os == 'Linux'
+      - if: runner.os == 'Linux'
         run: |
           wget https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz
           tar xvf libwebp-1.4.0.tar.gz
