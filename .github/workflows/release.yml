@@ -14,7 +14,6 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
             goos: windows
@@ -48,15 +47,21 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           install: |
-            gcc
-            libwebp
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-libwebp
       
       - if: runner.os == 'macos'
         run: brew install webp
       
       - if: runner.os == 'ubuntu'
-        run: sudo apt-get install -y libwebp-dev
-      
+        run: |
+          wget https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz
+          tar xvf libwebp-1.4.0.tar.gz
+          cd libwebp-1.4.0
+          ./configure
+          make
+          sudo make install
+
       - env:
           CGO_ENABLED: 1
           GOOS: ${{ matrix.goos }}
