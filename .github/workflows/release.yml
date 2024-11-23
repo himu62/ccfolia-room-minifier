@@ -14,6 +14,7 @@ jobs:
 
     strategy:
       matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
             goos: windows
@@ -21,12 +22,20 @@ jobs:
             extension: '.exe'
           - os: macos-latest
             goos: darwin
-            goarch: [amd64, arm64]
-            extension: '-darwin'
+            goarch: amd64
+            extension: '-darwin-amd64'
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            extension: '-darwin-arm64'
           - os: ubuntu-latest
             goos: linux
-            goarch: [amd64, arm64]
-            extension: '-linux'
+            goarch: amd64
+            extension: '-linux-amd64'
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            extension: '-linux-arm64'
 
     steps:
       - uses: actions/checkout@v4
