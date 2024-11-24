@@ -1,4 +1,4 @@
-package main
+package process
 
 import (
 	"archive/zip"
@@ -11,7 +11,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -22,37 +21,11 @@ const (
 	imageExts = ".png .jpg .jpeg"
 )
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: ccfolia-room-minifier <filename>")
-		os.Exit(1)
-	}
-	inputPath := os.Args[1]
-	outputPath := generateOutputPath(inputPath)
-
-	err := processZip(inputPath, outputPath)
+func ProcessZip(inputData []byte) ([]byte, error) {
+	reader, err := zip.NewReader(bytes.NewReader(inputData), int64(len(inputData)))
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-		os.Exit(1)
+		return nil, err
 	}
-	fmt.Println("\nDone")
-}
-
-func generateOutputPath(inputPath string) string {
-	dir := filepath.Dir(inputPath)
-	base := filepath.Base(inputPath)
-	ext := filepath.Ext(base)
-	name := strings.TrimSuffix(base, ext)
-	outputName := name + "_compressed" + ext
-	return filepath.Join(dir, outputName)
-}
-
-func processZip(inputPath, outputPath string) error {
-	reader, err := zip.OpenReader(inputPath)
-	if err != nil {
-		return err
-	}
-	defer reader.Close()
 
 	fileData := make(map[string][]byte)
 	filenameMap := make(map[string]string)
@@ -62,7 +35,7 @@ func processZip(inputPath, outputPath string) error {
 	for i, file := range reader.File {
 		data, err := readFile(file)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !isImageFile(file.Name) {
@@ -72,7 +45,7 @@ func processZip(inputPath, outputPath string) error {
 
 		animated, err := isAnimatedImage(data, file.Name)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if animated {
 			fileData[file.Name] = data
@@ -81,7 +54,7 @@ func processZip(inputPath, outputPath string) error {
 
 		newData, err := processImage(data)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		hash := sha256.Sum256(newData)
@@ -97,17 +70,21 @@ func processZip(inputPath, outputPath string) error {
 	if data, exists := fileData["__data.json"]; exists {
 		newData, err := processDataJSON(data, filenameMap)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		fileData["__data.json"] = newData
 
 		hash := sha256.Sum256(newData)
 		fileData[".token"] = []byte(fmt.Sprintf("0.%x", hash))
 	} else {
-		return fmt.Errorf("__data.json not found")
+		return nil, fmt.Errorf("__data.json not found")
 	}
 
-	return writeZip(outputPath, fileData)
+	outputData, err := writeZip(fileData)
+	if err != nil {
+		return nil, err
+	}
+	return outputData, nil
 }
 
 func readFile(file *zip.File) ([]byte, error) {
@@ -273,14 +250,9 @@ func checkFileProcessed(newFilename string, filenameMap map[string]string) bool 
 	return false
 }
 
-func writeZip(path string, fileData map[string][]byte) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := zip.NewWriter(file)
+func writeZip(fileData map[string][]byte) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := zip.NewWriter(&buf)
 	defer writer.Close()
 
 	var i int
@@ -290,12 +262,12 @@ func writeZip(path string, fileData map[string][]byte) error {
 
 		writer, err := writer.Create(filename)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if _, err := writer.Write(data); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return buf.Bytes(), nil
 }
