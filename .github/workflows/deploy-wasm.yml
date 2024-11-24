@@ -29,7 +29,7 @@ jobs:
 
       - name: Build
         run: |
-          GOOS=js GOARCH=wasm go build -ldflags="-s -w" -trimpath -buildmode=pie -o ./dist/ccfolia-room-minifier.wasm ./ccfolia-room-minifier.go
+          GOOS=js GOARCH=wasm go build -ldflags="-s -w" -trimpath -o ./dist/ccfolia-room-minifier.wasm ./ccfolia-room-minifier.go
           cp '$(go env GOROOT)/misc/wasm/wasm_exec.js' ./dist/
 
       - uses: actions/upload-artifact@v3
