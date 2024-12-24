@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/color/palette"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -182,8 +181,9 @@ func processImage(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
-	quant := ditherer.Quantize(img, quantized, colorPalette, false, true)
+	// quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
+	// quant := ditherer.Quantize(img, quantized, colorPalette, false, true)
+	quant := img
 
 	options, err := encoder.NewLossyEncoderOptions(encoder.PresetPicture, webpQuality)
 	if err != nil {
