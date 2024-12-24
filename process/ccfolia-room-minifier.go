@@ -22,7 +22,7 @@ import (
 
 const (
 	imageExts    = ".png .jpg .jpeg"
-	colorPalette = 4096
+	colorPalette = 2048
 	webpQuality  = 70
 )
 
