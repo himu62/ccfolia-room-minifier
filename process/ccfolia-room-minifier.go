@@ -22,8 +22,8 @@ import (
 
 const (
 	imageExts    = ".png .jpg .jpeg"
-	colorPalette = 1024
-	webpQuality  = 75
+	colorPalette = 4096
+	webpQuality  = 70
 )
 
 var ditherer = colorquant.Dither{
