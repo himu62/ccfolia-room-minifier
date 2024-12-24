@@ -3,6 +3,7 @@ package process
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
@@ -13,11 +14,13 @@ import (
 	_ "image/png"
 	"io"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/esimov/colorquant"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -43,55 +46,81 @@ func ProcessZip(inputData []byte) ([]byte, error) {
 	fileData := make(map[string][]byte)
 	filenameMap := make(map[string]string)
 
-	var readSize int
-	var reducedSize int
-	for i, file := range reader.File {
+	for _, file := range reader.File {
 		data, err := readFile(file)
 		if err != nil {
 			return nil, err
 		}
-
-		if !isImageFile(file.Name) {
-			fileData[file.Name] = data
-			continue
-		}
-
-		animated, err := isAnimatedImage(data, file.Name)
-		if err != nil {
-			return nil, err
-		}
-		if animated {
-			fileData[file.Name] = data
-			continue
-		}
-
-		newData, err := processImage(data)
-		if err != nil {
-			return nil, err
-		}
-
-		hash := sha256.Sum256(newData)
-		newFilename := fmt.Sprintf("%x.webp", hash)
-		fileData[newFilename] = newData
-		filenameMap[file.Name] = newFilename
-
-		readSize += len(data)
-		reducedSize += len(data) - len(newData)
-		fmt.Printf("\rProcessing... %d/%d (reduced %s, %.0f%%) ", i+1, len(reader.File), humanizeSize(reducedSize), 100-float64(reducedSize)/float64(readSize)*100)
+		fileData[file.Name] = data
 	}
 
-	if data, exists := fileData["__data.json"]; exists {
-		newData, err := processDataJSON(data, filenameMap)
-		if err != nil {
-			return nil, err
-		}
-		fileData["__data.json"] = newData
-
-		hash := sha256.Sum256(newData)
-		fileData[".token"] = []byte(fmt.Sprintf("0.%x", hash))
-	} else {
+	if _, exists := fileData["__data.json"]; !exists {
 		return nil, fmt.Errorf("__data.json not found")
 	}
+	if _, exists := fileData[".token"]; !exists {
+		return nil, fmt.Errorf(".token not found")
+	}
+
+	progressCh := make(chan string)
+	total := len(fileData) - 2
+
+	go func() {
+		doneCount := 0
+		for range progressCh {
+			doneCount++
+			fmt.Printf("\rProcessing... %d/%d ", doneCount, total)
+		}
+	}()
+
+	g, ctx := errgroup.WithContext(context.Background())
+	g.SetLimit(runtime.NumCPU() / 2)
+
+	for name, data := range fileData {
+		g.Go(func() error {
+			if !isImageFile(name) {
+				return nil
+			}
+			animated, err := isAnimatedImage(data, name)
+			if err != nil {
+				return err
+			}
+			if animated {
+				return nil
+			}
+
+			newData, err := processImage(data)
+			if err != nil {
+				return err
+			}
+			fileData[name] = newData
+
+			hash := sha256.Sum256(newData)
+			newFilename := fmt.Sprintf("%x.webp", hash)
+			filenameMap[name] = newFilename
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case progressCh <- name:
+			}
+
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	close(progressCh)
+
+	newData, err := processDataJSON(fileData["__data.json"], filenameMap)
+	if err != nil {
+		return nil, err
+	}
+	fileData["__data.json"] = newData
+
+	hash := sha256.Sum256(newData)
+	fileData[".token"] = []byte(fmt.Sprintf("0.%x", hash))
 
 	outputData, err := writeZip(fileData)
 	if err != nil {
@@ -197,25 +226,6 @@ func processImage(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func humanizeSize(size int) string {
-	const (
-		kb = 1024
-		mb = kb * 1024
-		gb = mb * 1024
-	)
-
-	switch {
-	case size < kb:
-		return fmt.Sprintf("%dB", size)
-	case size < mb:
-		return fmt.Sprintf("%.0fKB", float64(size)/kb)
-	case size < gb:
-		return fmt.Sprintf("%.0fMB", float64(size)/mb)
-	default:
-		return fmt.Sprintf("%.0fGB", float64(size)/gb)
-	}
 }
 
 func processDataJSON(data []byte, filenameMap map[string]string) ([]byte, error) {
