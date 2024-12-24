@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/draw"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -179,6 +180,14 @@ func processImage(data []byte) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
+	}
+
+	switch i := img.(type) {
+	case *image.CMYK:
+		// CMYK → RGBA に変換
+		rgbaImg := image.NewRGBA(i.Bounds())
+		draw.Draw(rgbaImg, rgbaImg.Bounds(), i, image.Point{}, draw.Over)
+		img = rgbaImg
 	}
 
 	// quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
