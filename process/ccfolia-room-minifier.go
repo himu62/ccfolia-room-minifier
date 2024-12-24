@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/color/palette"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -17,7 +16,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/esimov/colorquant"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
 	"golang.org/x/sync/errgroup"
@@ -28,14 +26,6 @@ const (
 	colorPalette = 2048
 	webpQuality  = 70
 )
-
-var ditherer = colorquant.Dither{
-	Filter: [][]float32{
-		{0.0, 0.0, 0.0, 7.0 / 48.0, 5.0 / 48.0},
-		{3.0 / 48.0, 5.0 / 48.0, 7.0 / 48.0, 5.0 / 48.0, 3.0 / 48.0},
-		{1.0 / 48.0, 3.0 / 48.0, 5.0 / 48.0, 3.0 / 48.0, 1.0 / 48.0},
-	},
-}
 
 func ProcessZip(inputData []byte) ([]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(inputData), int64(len(inputData)))
@@ -212,9 +202,6 @@ func processImage(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
-	quant := ditherer.Quantize(img, quantized, colorPalette, false, true)
-
 	options, err := encoder.NewLossyEncoderOptions(encoder.PresetPicture, webpQuality)
 	if err != nil {
 		return nil, err
@@ -222,7 +209,7 @@ func processImage(data []byte) ([]byte, error) {
 	options.Method = 6
 
 	var buf bytes.Buffer
-	err = webp.Encode(&buf, quant, options)
+	err = webp.Encode(&buf, img, options)
 	if err != nil {
 		return nil, err
 	}
