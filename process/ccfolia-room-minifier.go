@@ -270,11 +270,11 @@ func writeZip(fileData map[string][]byte) ([]byte, error) {
 		i++
 		fmt.Printf("\rWriting... %d/%d ", i+1, len(fileData))
 
-		writer, err := writer.Create(filename)
+		file, err := writer.Create(filename)
 		if err != nil {
 			return nil, err
 		}
-		if _, err := writer.Write(data); err != nil {
+		if _, err := file.Write(data); err != nil {
 			return nil, err
 		}
 	}
