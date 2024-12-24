@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/draw"
+	"image/color/palette"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -182,17 +182,8 @@ func processImage(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	switch i := img.(type) {
-	case *image.CMYK:
-		// CMYK → RGBA に変換
-		rgbaImg := image.NewRGBA(i.Bounds())
-		draw.Draw(rgbaImg, rgbaImg.Bounds(), i, image.Point{}, draw.Over)
-		img = rgbaImg
-	}
-
-	// quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
-	// quant := ditherer.Quantize(img, quantized, colorPalette, false, true)
-	quant := img
+	quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
+	quant := ditherer.Quantize(img, quantized, colorPalette, false, true)
 
 	options, err := encoder.NewLossyEncoderOptions(encoder.PresetPicture, webpQuality)
 	if err != nil {
@@ -272,7 +263,6 @@ func checkFileProcessed(newFilename string, filenameMap map[string]string) bool 
 func writeZip(fileData map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	writer := zip.NewWriter(&buf)
-	defer writer.Close()
 
 	var i int
 	for filename, data := range fileData {
@@ -286,6 +276,11 @@ func writeZip(fileData map[string][]byte) ([]byte, error) {
 		if _, err := file.Write(data); err != nil {
 			return nil, err
 		}
+	}
+
+	err := writer.Close()
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.Bytes(), nil
