@@ -97,7 +97,7 @@ func ProcessZip(inputData []byte) ([]byte, error) {
 			newFilename := fmt.Sprintf("%x.webp", hash)
 			filenameMap[name] = newFilename
 			delete(fileData, name)
-			fileData[name] = newData
+			fileData[newFilename] = newData
 
 			select {
 			case <-ctx.Done():
