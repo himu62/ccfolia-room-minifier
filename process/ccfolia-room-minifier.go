@@ -92,11 +92,12 @@ func ProcessZip(inputData []byte) ([]byte, error) {
 			if err != nil {
 				return err
 			}
-			fileData[name] = newData
 
 			hash := sha256.Sum256(newData)
 			newFilename := fmt.Sprintf("%x.webp", hash)
 			filenameMap[name] = newFilename
+			delete(fileData, name)
+			fileData[name] = newData
 
 			select {
 			case <-ctx.Done():
