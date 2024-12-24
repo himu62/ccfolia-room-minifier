@@ -43,8 +43,11 @@ jobs:
         run: |
           export PATH="$GOROOT_MSYS/bin:$PATH"
           go build -ldflags='-s -w -extldflags "-static"' -trimpath -buildmode=pie -o ./ccfolia-room-minifier.exe ./cmd/main.go
+          go build -ldflags='-s -w -extldflags "-static"' -trimpath -buildmode=pie -o ./compare.exe ./cmd/compare/compare.go
 
       - uses: actions/upload-artifact@v4
         with:
-          name: artifacts
-          path: ccfolia-room-minifier.exe
+          name: ccfolia-room-minifier
+          path: |
+            ccfolia-room-minifier.exe
+            compare.exe
