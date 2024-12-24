@@ -8,18 +8,31 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/color/palette"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
 	"path/filepath"
 	"strings"
 
-	webp "github.com/kolesa-team/go-webp/encoder"
+	"github.com/esimov/colorquant"
+	"github.com/kolesa-team/go-webp/encoder"
+	"github.com/kolesa-team/go-webp/webp"
 )
 
 const (
-	imageExts = ".png .jpg .jpeg"
+	imageExts    = ".png .jpg .jpeg"
+	colorPalette = 1024
+	webpQuality  = 75
 )
+
+var ditherer = colorquant.Dither{
+	Filter: [][]float32{
+		{0.0, 0.0, 0.0, 7.0 / 48.0, 5.0 / 48.0},
+		{3.0 / 48.0, 5.0 / 48.0, 7.0 / 48.0, 5.0 / 48.0, 3.0 / 48.0},
+		{1.0 / 48.0, 3.0 / 48.0, 5.0 / 48.0, 3.0 / 48.0, 1.0 / 48.0},
+	},
+}
 
 func ProcessZip(inputData []byte) ([]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(inputData), int64(len(inputData)))
@@ -169,23 +182,20 @@ func processImage(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	options, err := webp.NewLossyEncoderOptions(webp.PresetPicture, 75)
+	quantized := image.NewPaletted(image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy()), palette.WebSafe)
+	quant := ditherer.Quantize(img, quantized, colorPalette, false, true)
+
+	options, err := encoder.NewLossyEncoderOptions(encoder.PresetPicture, webpQuality)
 	if err != nil {
 		return nil, err
 	}
 	options.Method = 6
 
-	encoder, err := webp.NewEncoder(img, options)
-	if err != nil {
-		return nil, err
-	}
-
 	var buf bytes.Buffer
-	err = encoder.Encode(&buf)
+	err = webp.Encode(&buf, quant, options)
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Printf("image processed (%s -> %s, %.0f%%)\n", humanizeSize(len(data)), humanizeSize(buf.Len()), float64(buf.Len())/float64(len(data))*100)
 	return buf.Bytes(), nil
 }
 
