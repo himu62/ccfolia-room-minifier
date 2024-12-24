@@ -4,7 +4,6 @@ import { fileSystemTreePlugin } from './script/generate-webcontainer-fstree'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "./",
   plugins: [
     react(),
     fileSystemTreePlugin("./webcontainer"),
