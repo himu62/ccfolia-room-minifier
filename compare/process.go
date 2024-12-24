@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"image"
 	"image/color/palette"
+	_ "image/jpeg"
+	_ "image/png"
 
 	"github.com/esimov/colorquant"
 	"github.com/kolesa-team/go-webp/encoder"
