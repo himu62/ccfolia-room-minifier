@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.21'
       
       - if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
@@ -70,13 +70,13 @@ jobs:
           CGO_LDFLAGS: '-L/mingw64/lib -lwebp -lsharpyuv -static-pie'
         run: |
           export PATH="$GOROOT_MSYS/bin:$PATH"
-          go build -ldflags='-s -w -extldflags "-static"' -trimpath -buildmode=pie -o ./ccfolia-room-minifier${{ matrix.suffix }} ./cmd/cmd.go
+          go build -ldflags='-s -w -extldflags "-static"' -trimpath -buildmode=pie -o ./ccfolia-room-minifier${{ matrix.suffix }} ./cmd/main.go
 
       - if: runner.os != 'Windows'
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: go build -ldflags='-s -w' -trimpath -buildmode=pie -o ./ccfolia-room-minifier${{ matrix.suffix }} ./cmd/cmd.go
+        run: go build -ldflags='-s -w' -trimpath -buildmode=pie -o ./ccfolia-room-minifier${{ matrix.suffix }} ./cmd/main.go
 
       - uses: softprops/action-gh-release@v2
         with:
