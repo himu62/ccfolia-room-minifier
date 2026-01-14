@@ -5,10 +5,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -16,15 +15,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kolesa-team/go-webp/encoder"
-	"github.com/kolesa-team/go-webp/webp"
+	"github.com/cshum/vipsgen/vips"
 	"golang.org/x/sync/errgroup"
 )
 
 const (
-	imageExts    = ".png .jpg .jpeg"
-	colorPalette = 2048
-	webpQuality  = 70
+	imageExts = ".png .jpg .jpeg .gif"
 )
 
 func ProcessZip(inputData []byte) ([]byte, error) {
@@ -70,21 +66,25 @@ func ProcessZip(inputData []byte) ([]byte, error) {
 			if !isImageFile(name) {
 				return nil
 			}
-			animated, err := isAnimatedImage(data, name)
-			if err != nil {
-				return err
-			}
-			if animated {
-				return nil
-			}
+			// animated, err := isAnimatedImage(data, name)
+			// if err != nil {
+			// 	return err
+			// }
+			// if animated {
+			// 	return nil
+			// }
 
 			newData, err := processImage(data)
 			if err != nil {
 				return err
 			}
 
+			if len(newData) >= len(data) {
+				return nil
+			}
+
 			hash := sha256.Sum256(newData)
-			newFilename := fmt.Sprintf("%x.webp", hash)
+			newFilename := fmt.Sprintf("%x.avif", hash)
 			filenameMap[name] = newFilename
 			delete(fileData, name)
 			fileData[newFilename] = newData
@@ -146,74 +146,73 @@ func isImageFile(filename string) bool {
 	return false
 }
 
-func isAnimatedImage(data []byte, filename string) (bool, error) {
-	ext := strings.ToLower(filepath.Ext(filename))
-	if ext == ".png" {
-		return isAnimatedPNG(data)
-	}
-	return false, nil
-}
+// func isAnimatedImage(data []byte, filename string) (bool, error) {
+// 	ext := strings.ToLower(filepath.Ext(filename))
+// 	if ext == ".png" {
+// 		return isAnimatedPNG(data)
+// 	}
+// 	return false, nil
+// }
 
-func isAnimatedPNG(data []byte) (bool, error) {
-	const (
-		pngSignature = "\x89PNG\r\n\x1a\n"
-	)
+// func isAnimatedPNG(data []byte) (bool, error) {
+// 	const (
+// 		pngSignature = "\x89PNG\r\n\x1a\n"
+// 	)
 
-	reader := bytes.NewReader(data)
+// 	reader := bytes.NewReader(data)
 
-	sig := make([]byte, 8)
-	_, err := io.ReadFull(reader, sig)
-	if err != nil {
-		return false, err
-	}
-	if string(sig) != pngSignature {
-		return false, fmt.Errorf("invalid PNG image")
-	}
+// 	sig := make([]byte, 8)
+// 	_, err := io.ReadFull(reader, sig)
+// 	if err != nil {
+// 		return false, err
+// 	}
+// 	if string(sig) != pngSignature {
+// 		return false, fmt.Errorf("invalid PNG image")
+// 	}
 
-	for {
-		var chunkLen int32
-		err := binary.Read(reader, binary.BigEndian, &chunkLen)
-		if err != nil {
-			break
-		}
+// 	for {
+// 		var chunkLen int32
+// 		err := binary.Read(reader, binary.BigEndian, &chunkLen)
+// 		if err != nil {
+// 			break
+// 		}
 
-		chunkType := make([]byte, 4)
-		_, err = io.ReadFull(reader, chunkType)
-		if err != nil {
-			return false, err
-		}
+// 		chunkType := make([]byte, 4)
+// 		_, err = io.ReadFull(reader, chunkType)
+// 		if err != nil {
+// 			return false, err
+// 		}
 
-		if string(chunkType) == "acTL" {
-			return true, nil
-		}
+// 		if string(chunkType) == "acTL" {
+// 			return true, nil
+// 		}
 
-		_, err = reader.Seek(int64(chunkLen)+4, io.SeekCurrent)
-		if err != nil {
-			return false, err
-		}
-	}
+// 		_, err = reader.Seek(int64(chunkLen)+4, io.SeekCurrent)
+// 		if err != nil {
+// 			return false, err
+// 		}
+// 	}
 
-	return false, nil
-}
+// 	return false, nil
+// }
 
 func processImage(data []byte) ([]byte, error) {
-	img, _, err := image.Decode(bytes.NewReader(data))
+	img, err := vips.NewImageFromBuffer(data, &vips.LoadOptions{N: -1})
 	if err != nil {
 		return nil, err
 	}
 
-	options, err := encoder.NewLossyEncoderOptions(encoder.PresetPicture, webpQuality)
-	if err != nil {
-		return nil, err
-	}
-	options.Method = 6
+	opts := vips.DefaultHeifsaveBufferOptions()
+	opts.Bitdepth = 8
+	opts.Q = 65
+	opts.Compression = vips.HeifCompressionAv1
+	opts.Keep = vips.KeepNone
 
-	var buf bytes.Buffer
-	err = webp.Encode(&buf, img, options)
+	avifBytes, err := img.HeifsaveBuffer(opts)
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return avifBytes, nil
 }
 
 func processDataJSON(data []byte, filenameMap map[string]string) ([]byte, error) {
@@ -233,7 +232,7 @@ func processDataJSON(data []byte, filenameMap map[string]string) ([]byte, error)
 		for filename, resource := range resources {
 			if checkFileProcessed(filename, filenameMap) {
 				newResources[filename] = map[string]interface{}{
-					"type": "image/webp",
+					"type": "image/avif",
 				}
 			} else {
 				newResources[filename] = resource
